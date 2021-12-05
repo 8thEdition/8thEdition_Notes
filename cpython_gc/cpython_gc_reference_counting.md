@@ -1,4 +1,5 @@
-# CPython垃圾回收機制 - 引用計數機制
+> [主頁](https://hackmd.io/@8thEdition) > [深入Python記憶體回收機制(Garbage Collection)](https://hackmd.io/@8thEdition/garbage_collection) > 引用計數機制(Reference Counting)
+# 引用計數機制 (Reference Counting)
 
 在Python的世界中，萬物皆是物件(Object)。當我們在指定一個物件給一個變數時，變數實際上存的其實是物件的記憶體位置，而Python有提供id()這個函數讓我們獲得這個資訊。
 
@@ -50,7 +51,7 @@ print(sys.getrefcount(a)) # Output: 139
 ```
 > 
 ---
-而從創建int物件的其中一個函數，我們也可以看到若是屬於小整數，就會直接回傳small_ints這個整數物件池的物件：
+而從創建int物件的其中一個函數，我們也可以看到若是屬於小整數，就會透過get_small_int -> __PyLong_GetSmallInt_internal直接回傳small_ints這個整數物件池的物件：
 
 ---
 ```c
@@ -222,7 +223,7 @@ ref=(0, None, 257, 'ref=') # co_consts
 ---
 
 從上述的結果來看，當我們del a這個變數後，引用數量的確減少了，不過第四行怎麼會數輸出4呢？我們接著來分析看看這些引用都是誰吧：
-1. 在編譯的過程中，會掃過整份原始碼，並產生出中間物，這個中間物我們可以從gc.get_referrers()的結果看出來：ref=[b'import', b'dis', ...省略, 257, ...省略]，當中的"257"為第一個引用。
+1. 在編譯的過程中，會掃過整份原始碼，並產生出中間物，這個中間物我們可以從gc.get_referrers()的結果看出來：ref=[b'import', b'dis', 257,... 257, 257, ...]，其中之一的"257"為第一個引用。
 2. 還記得我們前面提到CPython在編譯時會做最佳化，同時把編譯時就知道的常數存進PyCodeObject的co_consts嗎？這個就是gc.get_referrers()所得到的第二個結果:ref=(0, None, 257, 'ref=')，當中的"257"就是第二個引用。
 3. 至於第三個引用是誰呢？就是在呼叫sys.getrefcount()時，我們把257這個物件傳進去時，實際上sys.getrefcount()會用一個變數作為參數來接這個物件，這個就是第三個引用。不過這是暫時的，當跳出這個函數之後，引用就消失了。
 4. 最後一個引用就不必多說了吧？就是我們自己宣告的a標籤！
